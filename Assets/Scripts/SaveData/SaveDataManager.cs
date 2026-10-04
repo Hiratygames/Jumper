@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.IO;
 
 public class SaveDataManager : MonoBehaviour
 {
@@ -86,23 +87,52 @@ public class SaveDataManager : MonoBehaviour
 		}
 		return true;
 	}
-
+	private string GetSavePath(int idx)
+	{
+#if UNITY_WEBGL
+		return "SaveData" + idx.ToString("D3");
+#else
+		return Application.persistentDataPath + "/" + "SaveData" + idx.ToString("D3") + ".data";
+#endif
+	}
 	public bool HasSaveData()
-    {
-        return PlayerPrefs.HasKey(SaveData.SaveKey);
-	}
-    public void Load()
 	{
-		SaveData.Load(SaveData.SaveKey, out saveData);
+#if UNITY_WEBGL
+		return PlayerPrefs.HasKey(GetSavePath(0));
+#else
+		return File.Exists(GetSavePath(0));
+#endif
 	}
-    public void Save()
+	public void Load()
 	{
-		SaveData.Save(SaveData.SaveKey, saveData);
+#if UNITY_WEBGL
+		string json = PlayerPrefs.GetString(GetSavePath(0));
+		saveData = JsonUtility.FromJson<SaveData>(json);
+#else
+		string json = File.ReadAllText(GetSavePath(0));
+		saveData = JsonUtility.FromJson<SaveData>(json);
+#endif
+	}
+	public void Save()
+	{
+#if UNITY_WEBGL
+		string json = JsonUtility.ToJson(saveData);
+		PlayerPrefs.SetString(GetSavePath(0), json);
+		PlayerPrefs.Save();
+#else
+		string json = JsonUtility.ToJson(saveData);
+		File.WriteAllText(GetSavePath(0), json);
+#endif
 	}
 	public void Delete()
 	{
+#if UNITY_WEBGL
 		saveData = new SaveData();
-		PlayerPrefs.DeleteKey(SaveData.SaveKey);
+		PlayerPrefs.DeleteKey(GetSavePath(0));
 		PlayerPrefs.Save();
+#else
+		saveData = new SaveData();
+		File.Delete(GetSavePath(0));
+#endif
 	}
 }
